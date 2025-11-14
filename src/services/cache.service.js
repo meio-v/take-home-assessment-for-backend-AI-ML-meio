@@ -3,6 +3,8 @@ class CacheService {
     this.cache = new Map();
     this.defaultTTL = 5 * 60 * 1000;
     this.cleanupInterval = setInterval(() => this.cleanup(), 60000);
+    this.hits = 0;
+    this.misses = 0;
   }
 
   set(key, value, ttl) {
@@ -14,12 +16,17 @@ class CacheService {
 
   get(key) {
     const entry = this.cache.get(key);
-    if (!entry) return null;
+    if (!entry) { 
+      this.misses++;
+      return null;
+    }
     
     if (Date.now() > entry.expiresAt) {
       this.cache.delete(key);
+      this.misses++;
       return null;
     }
+    this.hits++;
     return entry.data;
   }
 
@@ -50,9 +57,18 @@ class CacheService {
       }
     }
   }
-
+  
   size() {
     return this.cache.size;
+  }
+
+  getStats() {
+    return {
+      hits: this.hits,
+      misses: this.misses,
+      size: this.size(),
+      defaultTTL: this.defaultTTL,
+    };
   }
 
   destroy() {
